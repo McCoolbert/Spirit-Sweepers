@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Spirit Sweepers</title>
+  <meta name="viewport" content="width=500,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Michroma&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Merriweather:ital@1&display=swap" rel="stylesheet">
+
+
+<style>
+  .pulsing-btn {
+    animation: pulsebox 1.35s infinite cubic-bezier(.66,0,.66,1);
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 1.20em;
+    padding: 24px 66px;
+    border-radius: 18px;
+    border: 2.8px solid #d13b77;
+    background: linear-gradient(180deg,#3c1345 88%,#29142a 100%);
+    color: #ffeafd;
+    cursor: pointer;
+    box-shadow: 0 0 18px #e6baff33, 0 0 6px #d13b77, 0 0 3px #000c;
+    letter-spacing: 2px;
+    font-family: 'Press Start 2P',monospace,Arial,sans-serif;
+    font-weight: bold;
+    text-shadow: 0 0 7px #e6baff77, 0 2px 0 #29142a;
+    text-transform: uppercase;
+  }
+
+  .pulsing-btn-inner {
+    animation: blinktext 1.35s infinite steps(2, start);
+    display: inline-block;
+  }
+
+  @keyframes pulsebox {
+    0%   { transform: scale(1);}
+    50%  { transform: scale(1.07);}
+    100% { transform: scale(1);}
+  }
+
+  @keyframes blinktext {
+    0% { opacity: 1; }
+    50% { opacity: 0.62; }
+    100% { opacity: 1; }
+  }
+</style>
+
+</head>
+<body>
+  <div id="hud"
+  style="display:none;
+    position: absolute;
+    top: 28px; left: 50%; transform: translateX(-50%);
+    display: none;
+    flex-direction: row;
+    gap: 36px;
+    background:rgba(18,22,28,0.97);
+    border-radius: 18px;
+    border: 3px solid #d13b77;
+    box-shadow: 0 0 27px #d13b77b0, 0 0 12px #ffeafd22 inset;
+    padding: 18px 38px;
+    font-family: 'Press Start 2P', monospace, Arial, sans-serif;
+    z-index: 9999;
+    align-items: center;
+    text-align: center;
+    pointer-events: none;
+  ">
+  <div style="display:flex;align-items:center;">
+    <b style="color:#ffeafd; padding:2px 10px; text-shadow:0 0 2px #e6baff44;">Leben:</b>
+    <span id="game-life" style="color:#d13b77; font-weight:bold;">♥♥♥♥♥</span>
+  </div>
+  <div style="display:flex;align-items:center;">
+    <b style="color:#ffeafd; padding:2px 10px; text-shadow:0 0 2px #e6baff44;">Score:</b>
+    <span id="game-score" style="color:#ffeafd; font-weight:bold;">0</span>
+  </div>
+ <div style="display:flex;align-items:center;">
+  <b style="color:#ffeafd; padding:2px 10px; text-shadow:0 0 2px #e6baff44;">Rundenzeit:</b>
+  <span id="game-timer"
+    style="color:#d13b77; font-weight:bold; min-width:55px; white-space:nowrap; display:inline-block;">
+      90 s
+  </span>
+</div>
+</div>
+  <!-- Schloss-Hintergrund -->
+  <img id="game-bg" src="castle_bg.png" alt="" style="
+    position:fixed;
+    top:0; left:0;
+    width:100vw;
+    height:100vh;
+    object-fit:cover;
+    z-index:0;
+    pointer-events:none;
+    display:none;
+  ">
+
+  <canvas id="rain-canvas" style="
+    position:fixed;
+    top:0; left:0;
+    width:100vw;
+    height:100vh;
+    z-index:0.5;
+    pointer-events:none;
+  "></canvas>
+
+  <canvas id="menu-bg" width="1100" height="480" style="
+    position:fixed;
+    top:0; left:0;
+    width:100vw;
+    height:100vh;
+    z-index:1;
+    display:none;
+  "></canvas>
+  
+  <!-- Highscore Overlay -->
+<div id="highscore-overlay" style="
+  display: none;
+  position: fixed; left:0; top:0; width:100vw; height:100vh;
+  z-index: 19999;
+  background: rgba(30,13,33,0.6);
+  backdrop-filter: blur(7px);
+  pointer-events: auto;">
+  <div style="
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    min-height: 380px;
+    min-width: 410px; max-width: 95vw;
+    background: linear-gradient(162deg, #282038 80%, #442750 100%);
+    border-radius: 20px;
+    border: 3px solid #ffeafd;
+    box-shadow: 0 0 25px #d13b77aa, 0 0 15px #ffeafd44 inset;
+    padding: 50px 30px 44px 30px;
+    text-align: center;
+  ">
+    <div style="
+    font-family:'Press Start 2P',monospace;
+    color:#ffeafd;
+    font-size:2.2em;             /* Deutlich größer */
+    font-weight:bold;
+    letter-spacing:2.5px;
+    margin-bottom:34px;          /* Mehr Abstand nach unten */
+    text-shadow: 0 0 18px #d13b77, 0 0 15px #fff, 0 1px 0 #000c;
+    text-transform:uppercase;
+    filter:drop-shadow(0 4px 12px #d13b773c);
+    letter-spacing: 0.15em;
+    "> HIGHSCORE
+    </div>
+
+    <div style="height: 26px;"></div>
+    <table style="margin:0 auto 17px auto;font-family:'Press Start 2P';color:#ffeafd;font-size:0.95em;letter-spacing:1.1px; background:none; border-collapse: collapse;">
+      <tbody id="highscore-list"></tbody>
+    </table>
+    <div style="height: 18px;"></div>
+    <div id="player-score-row" style="margin-bottom:13px;"></div>
+    <div style="height:34px;"></div>
+    <div id="gameover-reason" style="
+  color: #ff5782;
+  font-size:1em;
+  font-weight:bold;
+  margin-bottom:18px;
+  letter-spacing:1.4px;
+  text-shadow: 0 0 7px #ff578288, 0 1px 0 #000;
+"></div>
+
+    <div style="display:flex; justify-content:center; gap:22px; margin-top:10px;">
+  <button id="btn-retry" style="font-size:0.95em; border-radius:14px; border:2px solid #d13b77; background:#181323; color:#ffd3df; font-family:'Press Start 2P'; padding:14px 40px; box-shadow:0 0 12px #ffeafd44;">
+    Erneut spielen
+  </button>
+  <button id="btn-menu" style="font-size:0.95em; border-radius:14px; border:2px solid #d13b77; background:#181323; color:#ffd3df; font-family:'Press Start 2P'; padding:14px 40px; box-shadow:0 0 12px #ffeafd44;">
+    Zurück zum Menü
+  </button>
+</div>
+
+  </div>
+</div>
+
+
+  <!-- Übergang: Blitz, Regen, Geister, Fledermäuse -->
+  <div id="transition-overlay" style="display:none;
+    position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9000;
+    background:linear-gradient(160deg, #fff 60%, #fafbfc 90%, #9de2ff 99%, #181b25 100%);
+    opacity:1; pointer-events:auto;">
+    <canvas id="transition-anim" style="width:100vw;height:100vh;display:block;position:absolute;top:0;left:0;pointer-events:none"></canvas>
+  </div>
+
+  <!-- Musik-Gate -->
+  <div id="music-gate" style="
+    position: fixed;
+    z-index: 9999;
+    left: 0; top: 0; width: 100vw; height: 100vh;
+    background: #000;
+    display: flex; align-items: center; justify-content: center;
+  ">
+    <button id="music-btn" class="pulsing-btn">
+  <span class="pulsing-btn-inner">BETRITT DIE GRUFT</span>
+</button>
+  </div>
+
+  <!-- Audioquellen -->
+  <audio id="menu-music" src="Menu.wav" preload="auto" loop></audio>
+  <audio id="game-music" src="Game.wav" preload="auto"></audio>
+  <audio id="transition-sound" src="Game_Start_Transition.wav" preload="auto"></audio>
+  <audio id="game-over-sound" src="Game_Over.wav" preload="auto"></audio>
+
+<!-- Regeln-Overlay -->
+
+<div id="rules-overlay" style="
+  display:none;
+  position:fixed; z-index:5000;
+  top:0; left:0; width:100vw; height:100vh;
+  background:rgba(24,22,29,0.78);
+  font-family:'Press Start 2P',monospace,Arial,sans-serif;
+  text-align:center;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+">
+  <div style="
+    width:90vw;
+    max-width:600px;
+    min-width:330px;
+    margin:0 auto;
+    background:rgba(18,22,28,0.97);
+    border-radius:18px;
+    padding:0;
+    box-shadow:0 6 38px #ff57827a, 0 0 4px #000c;
+    border:2.5px solid #d13b77;
+    overflow:hidden;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+  ">
+    <!-- Header -->
+    <div style="
+      width:100%;
+      border-top-left-radius:20px; border-top-right-radius:20px;
+      background:linear-gradient(90deg,#431038 0%,#1d101e 100%);
+      box-shadow:0 0 22px #d13b77b0, 0 0 11px #ffeafd22 inset;
+      padding:26px 0 15px 0;
+      border-bottom:2px solid #d13b77;
+    ">
+      <span style="
+        color:#ffeafd;
+        font-size:2.1em;
+        font-weight:bold;
+        letter-spacing:2.4px;
+        text-transform:uppercase;
+        text-shadow:0 0 8px #e6baffaa,0 2px 0 #000c,0 0 3px #d13b77a0;
+        display:block;
+      ">
+        REGELN & STEUERUNG
+      </span>
+    </div>
+    <!-- Inhalt -->
+    <div style="
+      padding:21px 18px 21px 18px;
+      color:#e6baff;
+      font-size:0.96em;
+      line-height:1.7;
+      text-align:left;
+      background:rgba(18,22,28,0.97);
+      border-bottom-left-radius:20px;
+      border-bottom-right-radius:20px;
+    ">
+      <table style="width:100%; border-collapse:collapse; margin:0 0 20px 0;">
+  <tbody>
+    <tr>
+      <td style="width:44px; text-align:center; vertical-align:top; font-size:1.13em;">🕹</td>
+      <td style="padding:8px 0; vertical-align:top;">
+        <span>
+          <b style="color:#ffeafd; font-weight:bold; border-radius:7px; padding:3px 8px; text-shadow:0 0 7px #e6baffb0,0 1px 0 #000b;">Pfeiltasten</b>
+          oder
+          <b style="color:#ffeafd; font-weight:bold; border-radius:7px; padding:3px 8px; text-shadow:0 0 7px #e6baffb0,0 1px 0 #000b;">WASD</b>
+          zum Bewegen
+        </span>
+      </td>
+    </tr>
+    <tr>
+      <td style="width:44px; text-align:center; vertical-align:top; font-size:1.13em;">🎯</td>
+      <td style="padding:8px 0; vertical-align:top;">
+        <span>
+          <b style="color:#ffeafd; font-weight:bold; border-radius:7px; padding:3px 8px; text-shadow:0 0 7px #e6baffb0,0 1px 0 #000b;">Leertaste,</b>
+          um Fallen auszulegen und Geister zu fangen
+        </span>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+  <div style="
+  margin-top:22px;
+  margin-bottom:18px;
+  background:rgba(45,28,66,0.87);                /* etwas heller und kontrastiger */
+  padding:15px 18px;
+  border-radius:11px;
+  text-align:left;
+  box-shadow:0 0 14px 2px #d13b7733 inset, 0 0 7px 1px #ffeafd22 inset;
+">
+  <b style="color:#ffeafd; font-weight:bold; border-radius:7px; padding:3px 8px; text-shadow:0 0 7px #e6baffb0,0 1px 0 #000b;">Power-Ups:</b><br>
+  <span style="color:#00e5ff;">S</span>: Speedboost<br>
+  <span style="color:#ffee58;">U</span>: Schild<br>
+  <span style="color:#ff5555;">♥</span>: Extra-Leben
+</div>
+
+
+     <div style="margin:13px 0 6px 0; text-align:left;">
+  <span style="white-space:nowrap;">
+    <b style="color:#ffeafd; font-weight:bold; border-radius:7px; padding:3px 8px; text-shadow:0 0 7px #e6baffb0,0 1px 0 #000b;">Leben:</b>
+    <span style="color:#d13b77; font-weight:bold;">♥♥♥♥♥</span>
+  </span><br>
+  <span style="white-space:nowrap;">
+    <b style="color:#ffeafd; font-weight:bold; border-radius:7px; padding:3px 8px; text-shadow:0 0 7px #e6baffb0,0 1px 0 #000b;">Rundenzeit:</b>
+    <span style="color:#d13b77; font-weight:bold;">90 Sekunden</span>
+  </span>
+</div>
+
+      <div style="margin:7px 0 2px 0; text-align:left;">
+  <b style="color:#ffeafd; font-weight:bold; border-radius:7px; padding:3px 8px; text-shadow:0 0 7px #e6baffb0,0 1px 0 #000b;">Dein Ziel:</b>
+  Fange möglichst viele Geister mit Fallen, bevor die Zeit abläuft. Nutze Power-Ups und Combos für den Sieg!
+</div>
+
+    </div>
+  </div>
+  <!-- Button-Panel außerhalb des Rahmens, prominent und mittig -->
+  <button id="start-btn" class="pulsing-btn">
+  <span class="pulsing-btn-inner">
+    BEGINNE DIE GEISTERJAGD
+  </span>
+</button>
+
+</div>
+
+
+
+  <!-- Hauptmenü -->
+  <div id="main-menu" style="
+    display:none;
+    position: absolute;
+    z-index: 3;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(18,22,28,0.97);
+    border: 2.5px solid #d13b77;
+    border-radius: 18px;
+    box-shadow: 0 0 38px 10px #ff57827a, 0 0 4px #000c;
+    padding: 40px 44px 28px 44px;
+    min-width:340px; max-width:98vw;
+    text-align:center;
+  ">
+    <h1 style="
+      font-family:'Press Start 2P',monospace,Arial,sans-serif;
+      color:#d13b77;
+      margin:0 0 27px 0;
+      font-size:2.0em;
+      letter-spacing:2.2px;
+      text-shadow:
+        0 0 12px #5a123b,
+        0 1px 0 #53203a,
+        0 0 2px #000c;
+    ">
+      SPIRIT SWEEPERS
+    </h1>
+
+  <form id="player-form" style="margin-bottom:0; display: flex; flex-direction: column; align-items: center;">
+  <input type="text" id="player-name" maxlength="10" placeholder="Namen eingeben"
+    required
+    style="
+      font-family:'Press Start 2P';
+      font-size:1em;
+      padding:13px 20px;
+      border-radius:10px;
+      border:2px solid #d13b77;
+      background:#161b20;
+      color:#d13b77;
+      margin-bottom:17px;
+      margin-top:7px;
+      box-shadow:0 0 10px #ff578277;
+      text-shadow: 0 2px 0 #87235366;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      width: 70%;
+      min-width: 180px;
+      max-width: 300px;
+      text-align: center;
+    "
+  />
+  <label for="player-color" style="
+    font-family:'Press Start 2P';
+    font-size:0.99em;
+    color:#e6baff;
+    margin-right:9px;
+    letter-spacing:1.2px;
+    margin-bottom:9px;
+    display:inline-block;
+    text-shadow: 0 0 6px #5a123b;
+    text-align:center;
+  ">SWEEPER-FARBE:</label>
+  <select id="player-color"
+    style="
+      font-family:'Press Start 2P', monospace;
+      font-size:1em;
+      color:#d13b77;
+      background:#161b20;
+      border-radius:12px;
+      padding:14px 30px;
+      border:2px solid #d13b77;
+      margin-bottom:26px;
+      box-shadow:0 0 9px #ff578277;
+      text-shadow: 0 0 8px #d13b7722, 0 0 6px #111;
+      min-width:140px;
+      text-align:center;
+    ">
+      <option value="#d13b77" selected>Lila</option>
+      <option value="#39ff14" style="color:#39ff14;">Grün</option>
+      <option value="#00e5ff" style="color:#00e5ff;">Blau</option>
+      <option value="#ffee58" style="color:#ffee58;">Gelb</option>
+  </select>
+  <button type="submit" style="
+    font-family:'Press Start 2P',monospace,Arial,sans-serif;
+    font-size:1.17em;
+    padding:19px 56px;
+    border-radius:14px;
+    border:2.2px solid #d13b77;
+    background:linear-gradient(180deg,#3c1345 88%,#29142a 100%);
+    color:#ffeafd;
+    box-shadow:0 0 14px #e6baff33, 0 0 3px #000c;
+    cursor:pointer;
+    margin-top:11px;
+    letter-spacing:1.7px;
+    text-shadow: 0 0 8px #e6baff99, 0 2px 0 #3b1833bb;
+    transition:background 0.2s;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  ">MITSPIELEN</button>
+</form>
+
+
+
+    <div style="
+      font-family:'Press Start 2P',monospace,Arial,sans-serif;
+      font-size:0.99em;
+      color:#ffd3df;
+      margin-top:17px;
+      text-shadow: 0 0 9px #ff57827f, 0 0 7px #001a, 0 1px 0 #0018;
+      letter-spacing:1.2px;
+      filter:contrast(1.07) brightness(1.07);
+    ">
+      Wähle deinen Sweeper und beginne die Jagd...
+    </div>
+  </div>
+
+  <script src="client.js"></script>
+  <footer id="footer-bar" style="
+  width: 100vw;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 10000;
+  background: linear-gradient(180deg, rgba(30,13,33,0) 0%, #1c1320 47%, #25163c 100%);
+  min-height: 200px;
+  font-family: 'Press Start 2P', monospace, Arial, sans-serif;
+  padding: 0;
+  box-shadow: 0 -3px 18px #2c0b47a2;
+  text-align: center;
+  border-top: none;
+  display: block;
+">
+  <div style="margin-top: 130px;">
+    <span style="display:inline-block; width:32px; height:22px; vertical-align:middle; margin-right:3px; position:relative;">
+      <!-- Minimalistisches Konami-artiges Logo -->
+      <svg width="32" height="22" viewBox="0 0 32 22">
+        <rect x="3" y="2" width="24" height="6" rx="2.5"
+          fill="#ffeafd"
+          transform="skewY(20) rotate(-8 15 7)" />
+        <rect x="5" y="11" width="24" height="6" rx="2.5"
+          fill="#d13b77"
+          transform="skewY(-18) rotate(7 17 14)" />
+      </svg>
+    </span>
+    <span style="
+      font-family:'Press Start 2P', monospace, Arial, sans-serif;
+      font-size:1.09em; 
+      letter-spacing:2px; 
+      color:#ffeafd; 
+      font-weight:bold;
+      text-shadow:0 0 5px #d13b7799;">
+      LIMINAL LABS
+    </span>
+    <span style="
+      font-family:'Press Start 2P', monospace, Arial, sans-serif;
+      font-size:0.96em; 
+      color:#b883d6; 
+      margin-left:13px; 
+      opacity:0.93;
+      font-style:italic;">
+      See beyond the screen
+    </span>
+    <div style="
+      color: #dac1ec;
+      font-size: 0.66em;
+      letter-spacing:1.2px;
+      margin-top: 2px;
+      opacity:0.9;
+      line-height: 1.5em;
+    ">
+      © 1984 Liminal Labs. All rights reserved.<br>
+      Distributed under license by Eikon Media Division.
+    </div>
+  </div>
+</footer>
+</body>
+</html>
