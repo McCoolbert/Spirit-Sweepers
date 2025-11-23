@@ -1,17 +1,16 @@
 const express = require('express');
 const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const path = require('path');
 
-app.use(express.static('public'));
+// Statische Dateien aus "public" ausliefern:
+app.use(express.static(path.join(__dirname, 'public')));
 
-io.on('connection', (socket) => {
-  console.log('Ein Spieler verbunden!');
-
-  // Hier kommt später der Multiplayer-Code hin
+// Falls noch nicht vorhanden: Route für "/"
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const PORT = 4000;
-http.listen(PORT, () => {
-  console.log(`Server läuft unter http://localhost:${PORT}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server läuft auf Port ${PORT}`);
 });
